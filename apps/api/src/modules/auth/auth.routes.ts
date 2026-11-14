@@ -1,34 +1,33 @@
 import { Router } from 'express';
 import { registerSchema, loginSchema } from '@marketplace/validators';
-import jwt from 'jsonwebtoken';
-import { ENV } from '../../common/config/env';
+import { validateRequest } from '../../common/middleware/validate';
+import { AuthService } from './auth.service';
 import { authGuard } from '../../common/middleware/authGuard';
+import { ENV } from '../../common/config/env';
 
 export const authRouter = Router();
 
-authRouter.post('/register', (req, res, next) => {
+// POST /api/v1/auth/register
+authRouter.post('/register', validateRequest({ body: registerSchema }), async (req, res, next) => {
   try {
-    const validatedData = registerSchema.parse(req.body);
+    const result = await AuthService.register(req.body);
 
-    // In-memory or Mongoose persistence
-    const token = jwt.sign(
-      { userId: 'usr_' + Date.now(), email: validatedData.email, role: 'CUSTOMER' },
-      ENV.JWT_ACCESS_SECRET,
-      { expiresIn: '15m' }
-    );
+    // Set HTTP-only secure cookie for refresh token
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: ENV.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     res.status(201).json({
       success: true,
       statusCode: 201,
-      message: 'Customer account registered successfully',
+      message: 'Account registered successfully',
       data: {
-        user: {
-          firstName: validatedData.firstName,
-          lastName: validatedData.lastName,
-          email: validatedData.email,
-          role: 'CUSTOMER',
-        },
-        accessToken: token,
+        user: result.user,
+        accessToken: result.tokens.accessToken,
+        expiresIn: result.tokens.expiresIn,
       },
     });
   } catch (error) {
@@ -36,26 +35,26 @@ authRouter.post('/register', (req, res, next) => {
   }
 });
 
-authRouter.post('/login', (req, res, next) => {
+// POST /api/v1/auth/login
+authRouter.post('/login', validateRequest({ body: loginSchema }), async (req, res, next) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    const result = await AuthService.login(req.body);
 
-    const token = jwt.sign(
-      { userId: 'usr_admin', email, role: 'SUPER_ADMIN' },
-      ENV.JWT_ACCESS_SECRET,
-      { expiresIn: '15m' }
-    );
+    res.cookie('refreshToken', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: ENV.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     res.status(200).json({
       success: true,
       statusCode: 200,
-      message: 'Login successful',
+      message: 'Authentication successful',
       data: {
-        user: {
-          email,
-          role: 'SUPER_ADMIN',
-        },
-        accessToken: token,
+        user: result.user,
+        accessToken: result.tokens.accessToken,
+        expiresIn: result.tokens.expiresIn,
       },
     });
   } catch (error) {
@@ -63,11 +62,66 @@ authRouter.post('/login', (req, res, next) => {
   }
 });
 
+// POST /api/v1/auth/refresh
+authRouter.post('/refresh', async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        statusCode: 401,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Refresh token is required',
+        },
+      });
+    }
+
+    const tokens = await AuthService.rotateRefreshToken(refreshToken);
+
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: ENV.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      statusCode: 200,
+      message: 'Token rotated successfully',
+      data: {
+        accessToken: tokens.accessToken,
+        expiresIn: tokens.expiresIn,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/v1/auth/logout
+authRouter.post('/logout', (req, res) => {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: ENV.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
+  res.status(200).json({
+    success: true,
+    statusCode: 200,
+    message: 'Logged out successfully',
+  });
+});
+
+// GET /api/v1/auth/me
 authRouter.get('/me', authGuard, (req, res) => {
   res.status(200).json({
     success: true,
     statusCode: 200,
-    message: 'Current user profile retrieved',
+    message: 'Current authenticated session retrieved',
     data: {
       user: req.user,
     },

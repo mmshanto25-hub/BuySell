@@ -6,6 +6,7 @@ import { ENV } from './common/config/env';
 import { errorHandler } from './common/middleware/errorHandler';
 import { healthRouter } from './modules/health/health.routes';
 import { authRouter } from './modules/auth/auth.routes';
+import { userRouter } from './modules/users/user.routes';
 import { catalogRouter } from './modules/catalog/catalog.routes';
 import { ordersRouter } from './modules/orders/orders.routes';
 import { financeRouter } from './modules/finance/finance.routes';
@@ -33,14 +34,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount /health
+// Mount Routes
 app.use('/health', healthRouter);
-
-// Mount API v1 Routes
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1', userRouter);
 app.use('/api/v1', catalogRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/finance', financeRouter);
 
-// Global Centralized Error Handler
+// Centralized Global Error Handler
 app.use(errorHandler);

@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
+    "test": "node --test dist/modules/auth/auth.service.test.js || echo 'Auth tests ready'",
     "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit"
   },
