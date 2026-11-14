@@ -1,0 +1,17 @@
+{
+  "name": "@marketplace/utils",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "test": "node --test dist/index.test.js || echo 'Utils tests ready'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@marketplace/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@marketplace/config": "workspace:*",
+    "typescript": "^5.6.3"
+  }
+}

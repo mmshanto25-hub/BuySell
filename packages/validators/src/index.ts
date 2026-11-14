@@ -1,0 +1,142 @@
+import { z } from 'zod';
+
+// ==========================================
+// 1. AUTHENTICATION & USER SCHEMAS
+// ==========================================
+
+export const registerSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters').max(50),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters').max(50),
+  email: z.string().email('Please enter a valid email address'),
+  phone: z.string().regex(/^(\+8801|01)[3-9]\d{8}$/, 'Must be a valid Bangladeshi mobile number (+8801XXXXXXXXX)'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least 1 lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least 1 number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least 1 special character'),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const addressSchema = z.object({
+  type: z.enum(['SHIPPING', 'BILLING', 'BOTH']),
+  recipientName: z.string().min(2, 'Recipient name is required'),
+  phone: z.string().regex(/^(\+8801|01)[3-9]\d{8}$/, 'Must be a valid mobile number'),
+  streetAddress: z.string().min(5, 'Street address is required'),
+  city: z.string().min(2, 'City/District is required'),
+  division: z.string().min(2, 'Division is required'),
+  postalCode: z.string().min(4, 'Postal code is required'),
+  isDefault: z.boolean().default(false),
+  deliveryNotes: z.string().max(250).optional(),
+});
+
+// ==========================================
+// 2. SELLER & STORE SCHEMAS
+// ==========================================
+
+export const sellerKycSchema = z.object({
+  businessName: z.string().min(3, 'Business name must be at least 3 characters'),
+  tradeLicenseNumber: z.string().min(5, 'Trade License is required'),
+  tinNumber: z.string().optional(),
+  nidPassportNumber: z.string().min(10, 'NID or Passport number is required'),
+  bankAccount: z.object({
+    bankName: z.string().min(2, 'Bank name is required'),
+    branchName: z.string().min(2, 'Branch name is required'),
+    routingNumber: z.string().length(9, 'Routing number must be exactly 9 digits'),
+    accountHolderName: z.string().min(2, 'Account holder name is required'),
+    accountNumber: z.string().min(8, 'Account number is required'),
+  }),
+});
+
+export const storeUpdateSchema = z.object({
+  storeName: z.string().min(2).max(100).optional(),
+  logoUrl: z.string().url().optional(),
+  bannerUrl: z.string().url().optional(),
+  description: z.string().max(2000).optional(),
+  warehouseAddress: z.object({
+    streetAddress: z.string().min(5),
+    city: z.string().min(2),
+    division: z.string().min(2),
+    postalCode: z.string().min(4),
+    contactPhone: z.string().min(11),
+  }).optional(),
+});
+
+// ==========================================
+// 3. PRODUCT & INVENTORY SCHEMAS
+// ==========================================
+
+export const productVariantSchema = z.object({
+  sku: z.string().min(3, 'SKU is required'),
+  barcode: z.string().optional(),
+  title: z.string().min(1, 'Variant title is required (e.g. Red / M)'),
+  price: z.number().positive('Price must be greater than 0'),
+  compareAtPrice: z.number().positive().optional(),
+  costPrice: z.number().positive().optional(),
+  attributes: z.array(z.object({ name: z.string(), value: z.string() })).min(1),
+  imageUrl: z.string().url().optional(),
+  weightInGrams: z.number().min(0, 'Weight must be non-negative'),
+  initialStock: z.number().int().min(0, 'Initial stock cannot be negative'),
+});
+
+export const createProductSchema = z.object({
+  title: z.string().min(3, 'Title must be at least 3 characters').max(255),
+  shortDescription: z.string().max(500).optional(),
+  description: z.string().min(20, 'Detailed description is required'),
+  categoryId: z.string().min(1, 'Category is required'),
+  brandId: z.string().optional(),
+  images: z.array(
+    z.object({
+      url: z.string().url(),
+      alt: z.string().default('Product Image'),
+      isPrimary: z.boolean().default(false),
+      sortOrder: z.number().default(0),
+    })
+  ).min(1, 'At least 1 product image is required'),
+  basePrice: z.number().positive('Base price must be greater than 0'),
+  compareAtPrice: z.number().positive().optional(),
+  attributes: z.array(z.object({ name: z.string(), value: z.string() })).default([]),
+  tags: z.array(z.string()).default([]),
+  variants: z.array(productVariantSchema).min(1, 'At least one variant must be created'),
+});
+
+export const restockInventorySchema = z.object({
+  quantity: z.number().int().positive('Restock quantity must be a positive integer'),
+  reason: z.string().optional(),
+});
+
+// ==========================================
+// 4. CART & CHECKOUT SCHEMAS
+// ==========================================
+
+export const addToCartSchema = z.object({
+  productId: z.string().min(1),
+  variantId: z.string().min(1),
+  quantity: z.number().int().positive('Quantity must be at least 1').max(50),
+});
+
+export const updateCartItemSchema = z.object({
+  quantity: z.number().int().min(0, 'Quantity cannot be negative').max(50),
+});
+
+export const placeOrderSchema = z.object({
+  shippingAddressId: z.string().min(1, 'Shipping address is required'),
+  billingAddressId: z.string().optional(),
+  paymentMethod: z.enum(['COD', 'BKASH', 'NAGAD', 'SSLCOMMERZ', 'STRIPE']),
+  couponCode: z.string().optional(),
+  customerNotes: z.string().max(500).optional(),
+});
+
+// ==========================================
+// 5. FINANCE & SETTLEMENT SCHEMAS
+// ==========================================
+
+export const requestSettlementSchema = z.object({
+  amount: z.number().min(1000, 'Minimum settlement payout is ৳1,000'),
+  payoutMethod: z.enum(['BANK_TRANSFER', 'BKASH', 'NAGAD']),
+});

@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js build artifacts
+.next/
+out/
+
+# Build outputs
+dist/
+build/
+
+# Turborepo cache
+.turbo
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# Operating System
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log

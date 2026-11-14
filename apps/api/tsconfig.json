@@ -1,0 +1,10 @@
+{
+  "extends": "@marketplace/config/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "module": "commonjs",
+    "target": "ES2022"
+  },
+  "include": ["src/**/*"]
+}
