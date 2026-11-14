@@ -104,8 +104,8 @@ const userSchema = new Schema<IUserDocument>(
   {
     timestamps: true,
     toJSON: {
-      transform(doc, ret) {
-        ret.id = ret._id.toString();
+      transform(doc, ret: any) {
+        ret.id = ret._id ? ret._id.toString() : ret.id;
         delete ret._id;
         delete ret.__v;
         delete ret.passwordHash;
@@ -138,8 +138,8 @@ userSchema.methods.comparePassword = async function (candidatePassword: string):
 
 // Safe presentation object
 userSchema.methods.toSafeObject = function (): Record<string, any> {
-  const obj = this.toObject();
-  obj.id = obj._id.toString();
+  const obj: any = this.toObject();
+  obj.id = obj._id ? obj._id.toString() : obj.id;
   delete obj._id;
   delete obj.__v;
   delete obj.passwordHash;
@@ -147,9 +147,7 @@ userSchema.methods.toSafeObject = function (): Record<string, any> {
   return obj;
 };
 
-// Indexes
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ phone: 1 }, { unique: true, sparse: true });
+// Compound Indexes
 userSchema.index({ role: 1, status: 1 });
 
 export const User: Model<IUserDocument> =

@@ -2,9 +2,11 @@
   "name": "@marketplace/utils",
   "version": "1.0.0",
   "private": true,
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "test": "node --test dist/index.test.js || echo 'Utils tests ready'",
+    "build": "tsc",
+    "test": "node --test dist/index.test.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

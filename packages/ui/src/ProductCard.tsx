@@ -5,7 +5,7 @@ import { Rating } from './Rating';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { ShoppingCart, Heart } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from './lib/utils';
 
 export interface ProductCardProps {
   id: string;
