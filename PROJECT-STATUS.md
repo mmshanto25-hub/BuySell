@@ -1,8 +1,8 @@
 # Project Status & Execution Dashboard
 ## Enterprise Multi-Vendor E-Commerce Marketplace
 **Last Updated:** November 14, 2026  
-**Current Milestone:** Phase 2 (Database Models, Mongoose Schemas & Authentication Engine) Complete  
-**Overall Project Health:** On Track (Phase 2 100% Complete)  
+**Current Milestone:** Phase 3 (Seller Onboarding, Storefronts & Multi-Variant Catalog) Complete  
+**Overall Project Health:** On Track (Phase 3 100% Complete)  
 **Repository Working Directory:** `c:\Users\User\Desktop\E-Commerce`  
 
 ---
@@ -12,8 +12,8 @@
 ```
 [Phase 1: Foundation & Design Milestone]  ████████████████████ 100% (Complete)
 [Phase 2: Database Models & Full Auth]    ████████████████████ 100% (Complete)
-[Phase 3: Seller Onboarding & Catalog]    ░░░░░░░░░░░░░░░░░░░░   0% (Next)
-[Phase 4: Storefront & Split Checkout]    ░░░░░░░░░░░░░░░░░░░░   0% (Queued)
+[Phase 3: Seller Onboarding & Catalog]    ████████████████████ 100% (Complete)
+[Phase 4: Storefront & Split Checkout]    ░░░░░░░░░░░░░░░░░░░░   0% (Next)
 [Phase 5: Payments & Multi-Carrier Log]   ░░░░░░░░░░░░░░░░░░░░   0% (Queued)
 [Phase 6: Admin, GAAP Ledger & Payouts]   ░░░░░░░░░░░░░░░░░░░░   0% (Queued)
 [Phase 7: AI Integration, SEO & Mktg]     ░░░░░░░░░░░░░░░░░░░░   0% (Queued)
@@ -22,115 +22,85 @@
 
 ---
 
-## 2. Phase 2 Implementation Report (Rule 10 Compliance)
+## 2. Phase 3 Implementation Report (Rule 10 Compliance)
 
 ### 2.1 What Was Implemented
-1. **Core Database Models & ODM Architecture (`apps/api`)**:
-   - `User` Model (`apps/api/src/modules/users/user.model.ts`): Pre-save Bcrypt hashing ($\ge 12$ salt rounds), `comparePassword()`, `toSafeObject()` method, and compound index `{ role: 1, status: 1 }`.
-   - `RefreshToken` Model (`apps/api/src/modules/auth/refreshToken.model.ts`): Token family UUID, token hash, revocation flag, and MongoDB TTL indexing (`expires: 0`).
-   - `UserAddress` Model (`apps/api/src/modules/users/address.model.ts`): Customer delivery and billing address book with `{ userId: 1, isDefault: -1 }` index.
-   - `Role` Model (`apps/api/src/modules/roles/role.model.ts`): Standard system RBAC roles and granular permission strings.
-   - Database Connection Engine (`apps/api/src/common/database/connection.ts`): Resilient Mongoose connection wrapper with auto-reconnection and in-memory fallback for offline test execution.
-2. **Authentication & Security Engine (`apps/api/src/modules/auth/`)**:
-   - `AuthService` (`auth.service.ts`):
-     - Short-lived JWT Access Tokens (15 min lifespan).
-     - Long-lived Rotating Refresh Tokens (7-day lifespan).
-     - Cryptographic Token Reuse Breach Detection: Automatically revokes entire token family if a previously invalidated token is presented.
-     - Registration validation, collision detection, and Bcrypt password authentication.
-   - `authRouter` (`auth.routes.ts`):
-     - `POST /api/v1/auth/register` with Zod schema validation.
-     - `POST /api/v1/auth/login` setting secure HTTP-only refresh cookies.
-     - `POST /api/v1/auth/refresh` executing automatic Refresh Token Rotation (RTR).
-     - `POST /api/v1/auth/logout` revoking refresh tokens and clearing cookies.
-     - `GET /api/v1/auth/me` returning authenticated user profile.
-3. **Authorization & RBAC Middleware Tier**:
-   - `authGuard`: Extracts and verifies Bearer JWT tokens from HTTP Authorization headers.
-   - `requireRole`: Enforces user role permissions at the route layer.
-   - `validateRequest`: Reusable Zod schema validation middleware for `body`, `query`, and `params`.
-4. **User & Address Management (`apps/api/src/modules/users/`)**:
-   - Address book CRUD: `GET /api/v1/addresses`, `POST /api/v1/addresses`.
-   - Administrative user governance: `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/:id/status`.
-5. **Monorepo Packaging & Type Alignment**:
-   - Compiled all shared packages (`@marketplace/types`, `@marketplace/validators`, `@marketplace/utils`, `@marketplace/ui`).
-   - Standardized pnpm workspace dependency resolution with hoisted link configuration (`.npmrc`).
+1. **Seller & Store Data Architecture (`apps/api/src/modules/sellers/`)**:
+   - `Seller` Model (`seller.model.ts`): Legal business credentials, Trade License, TIN, NID/Passport, bank routing details, KYC state machine (`DRAFT` $\rightarrow$ `PENDING` $\rightarrow$ `APPROVED` / `REJECTED`), and negotiated commission override rate.
+   - `Store` Model (`store.model.ts`): Public merchant storefront, URL-safe slug, logo/banner URLs, warehouse dispatch address, rating, and status (`ACTIVE`, `INACTIVE`, `SUSPENDED`, `VACATION_MODE`).
+2. **Catalog Taxonomy & Attribute Architecture (`apps/api/src/modules/catalog/`)**:
+   - `Category` Model (`category.model.ts`): Infinite-depth hierarchical category tree with materialized paths (`ancestors`), category commission rate %, and dynamic attribute templates.
+   - `Brand` Model (`brand.model.ts`): Verified manufacturer and brand entities.
+3. **Product & Multi-Dimensional Variant Engine (`apps/api/src/modules/catalog/`)**:
+   - `Product` Model (`product.model.ts`): Full catalog item with base price, compare-at price, gallery images, attributes, full-text compound indexes, and moderation state (`PENDING_REVIEW` $\rightarrow$ `APPROVED`).
+   - `ProductVariant` Model (`variant.model.ts`): Discrete variant combinations (e.g. Color $\times$ Size), SKU generation, variant price overrides, barcode, and package dimensions/weight in grams.
+4. **Inventory & Movement Control Engine (`apps/api/src/modules/inventory/`)**:
+   - `Inventory` Model (`inventory.model.ts`): High-concurrency stock tracking: `availableStock` (ready for sale), `reservedStock` (locked in 15-minute checkouts), and `soldStock`.
+   - `InventoryMovement` Model (`movement.model.ts`): Immutable audit journal recording all inventory changes (`INITIAL`, `RESTOCK`, `RESERVATION_LOCKED`, `RESERVATION_EXPIRED`, `ORDER_FULFILLED`, `RETURN_RESTOCKED`).
+5. **Tenant Isolation Guard (`apps/api/src/common/middleware/tenantGuard.ts`)**:
+   - Automatically resolves and binds seller identity (`req.user.storeId`, `req.user.sellerId`) from authenticated sessions.
+   - Injects tenant scoping into all vendor database queries, architecturally preventing cross-seller data exposure.
+6. **Seller & Admin Moderation Endpoints**:
+   - `POST /api/v1/sellers/kyc`: Seller KYC document submission.
+   - `GET /api/v1/sellers/me`: Seller business & store profile retrieval.
+   - `PATCH /api/v1/stores/me`: Storefront profile and warehouse address update.
+   - `GET /api/v1/admin/sellers`: Admin review queue of seller applications.
+   - `PATCH /api/v1/admin/sellers/:id/kyc`: Admin approval or rejection of merchant KYC.
+   - `POST /api/v1/products`: Product creation with variant matrix and initial inventory allocation.
+   - `GET /api/v1/seller/products`: Tenant-isolated product listing.
+   - `PATCH /api/v1/inventory/:sku/restock`: Variant restocking with audit movement log.
+   - `GET /api/v1/admin/products/moderation`: Admin catalog moderation queue.
+   - `PATCH /api/v1/admin/products/:id/moderation`: Admin approval or rejection of submitted products.
 
 ---
 
 ### 2.2 Files Created & Modified
-- **Created in Phase 2**:
-  - `apps/api/src/common/database/connection.ts`
-  - `apps/api/src/modules/users/user.model.ts`
-  - `apps/api/src/modules/users/address.model.ts`
-  - `apps/api/src/modules/roles/role.model.ts`
-  - `apps/api/src/modules/auth/refreshToken.model.ts`
-  - `apps/api/src/modules/auth/auth.service.ts`
-  - `apps/api/src/modules/users/user.routes.ts`
-  - `apps/api/src/common/middleware/validate.ts`
-  - `.npmrc`
+- **Created in Phase 3**:
+  - `apps/api/src/modules/sellers/seller.model.ts`
+  - `apps/api/src/modules/sellers/store.model.ts`
+  - `apps/api/src/modules/catalog/category.model.ts`
+  - `apps/api/src/modules/catalog/brand.model.ts`
+  - `apps/api/src/modules/catalog/product.model.ts`
+  - `apps/api/src/modules/catalog/variant.model.ts`
+  - `apps/api/src/modules/inventory/inventory.model.ts`
+  - `apps/api/src/modules/inventory/movement.model.ts`
+  - `apps/api/src/common/middleware/tenantGuard.ts`
+  - `apps/api/src/modules/sellers/seller.routes.ts`
+  - `apps/api/src/modules/catalog/product.routes.ts`
+  - `apps/api/src/modules/catalog/catalog.service.test.ts`
 - **Modified & Built**:
-  - `apps/api/src/modules/auth/auth.routes.ts`
-  - `apps/api/src/modules/auth/auth.service.test.ts`
-  - `apps/api/src/app.ts`
-  - `apps/api/src/server.ts`
-  - `packages/types/package.json` & `dist/`
-  - `packages/validators/package.json` & `dist/`
-  - `packages/utils/package.json` & `dist/`
-  - `packages/ui/src/*.tsx` (standardized relative paths) & `dist/`
+  - `apps/api/src/app.ts` (Mounted `sellerRouter` and `productRouter`)
+  - `apps/api/src/modules/auth/auth.service.ts` (Added built-in seller test credentials)
+  - `apps/api/dist/` (Compiled output updated)
 
 ---
 
-### 2.3 APIs & Endpoints Active
+### 2.3 Tests Executed & Verification Results
 
-| Route | Method | Access Guard | Status | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `/health/liveness` | `GET` | Public | **Active** | Liveness probe returning process uptime |
-| `/health/readiness` | `GET` | Public | **Active** | Database & dependency connection status |
-| `/api/v1/auth/register` | `POST` | Public (Zod) | **Active** | Customer registration & token pair generation |
-| `/api/v1/auth/login` | `POST` | Public (Zod) | **Active** | Bcrypt validation & HTTP-only refresh cookie |
-| `/api/v1/auth/refresh` | `POST` | Cookie / Body | **Active** | Refresh Token Rotation (RTR) & reuse protection |
-| `/api/v1/auth/logout` | `POST` | Authenticated | **Active** | Session invalidation & cookie clearance |
-| `/api/v1/auth/me` | `GET` | `authGuard` | **Active** | Authenticated user profile retrieval |
-| `/api/v1/addresses` | `GET` | `authGuard` | **Active** | Retrieve customer address book |
-| `/api/v1/addresses` | `POST` | `authGuard` | **Active** | Create new delivery address |
-| `/api/v1/admin/users` | `GET` | `requireRole` | **Active** | Administrative user registry query |
-| `/api/v1/products` | `GET` | Public | **Active** | Faceted product catalog listing |
-| `/api/v1/orders/checkout-simulation` | `POST` | `authGuard` | **Active** | Multi-vendor split order simulation |
-
----
-
-### 2.4 Tests Executed & Verification Results
-
-1. **AuthService & Security Test Suite (`apps/api/src/modules/auth/auth.service.test.ts`)**:
-   - `✔ generates a valid JWT access token and formatted refresh token` (PASS)
-   - `✔ successfully registers a customer with valid credentials` (PASS)
-   - `✔ rejects duplicate email registration` (PASS)
-   - `✔ rotates refresh token and issues new access token` (PASS)
-   - **Result: 4 / 4 Passed (100% Green)**.
-2. **Utils & Financial Invariant Test Suite (`packages/utils/src/index.test.ts`)**:
-   - `✔ formats BDT currency correctly with symbol and commas` (PASS)
-   - `✔ validates balanced double-entry ledger journals` (PASS)
-   - `✔ detects unbalanced double-entry ledger journals` (PASS)
-   - `✔ converts product titles to URL safe slugs` (PASS)
-   - `✔ generates structured SKUs` (PASS)
-   - `✔ generates parent and partitioned sub-order numbers` (PASS)
-   - `✔ correctly assesses return window validity` (PASS)
-   - **Result: 7 / 7 Passed (100% Green)**.
-3. **End-to-End Live HTTP API Verification Probe**:
-   - `PASS: Health Liveness: ok`
-   - `PASS: Registration Status: 201 User: fahim.c@marketplace.com`
-   - `PASS: Profile Authed Role: CUSTOMER`
-   - `PASS: Products returned: 2`
-   - `PASS: Split Order parent: ORD-20261114-XXXX SubOrders: 2`
-   - **Result: All Live HTTP Invocations Passed**.
+1. **Phase 3 Catalog & Multi-Variant Test Suite (`apps/api/src/modules/catalog/catalog.service.test.ts`)**:
+   - `✔ generates consistent product slugs and unique variant SKUs` (PASS)
+   - `✔ validates multi-variant matrix structure (Color x Size)` (PASS)
+   - `✔ calculates inventory restock movements and preserves audit invariant` (PASS)
+2. **Cumulative Automated Test Run (14 / 14 Tests Passed — 100% Green)**:
+   - `AuthService & Token Security`: 4 / 4 Passed
+   - `Phase 3 Catalog & Multi-Variant Engine`: 3 / 3 Passed
+   - `Financial & Currency Utilities`: 3 / 3 Passed
+   - `Slug & Identifier Generators`: 3 / 3 Passed
+   - `Return & Escrow Window`: 1 / 1 Passed
+3. **Live HTTP REST API Integration Verification**:
+   - `PASS: Authenticated Seller Token obtained. Role: SELLER` (HTTP 200)
+   - `PASS: Seller KYC Submission: 201 Status: PENDING` (HTTP 201)
+   - `PASS: Admin Sellers Queue: 2 Applications found` (HTTP 200)
+   - `PASS: Product Created: 201 Moderation State: PENDING_REVIEW` (HTTP 201)
+   - `PASS: Restock Inventory: 200 Quantity: 15` (HTTP 200)
+   - **Result: 100% Live Invocations Verified**.
 
 ---
 
-### 2.5 Known Issues & Next Phase
-
-- **Known Issues**: MongoDB connection defaults to local `mongodb://localhost:27017/marketplace` with automatic fallback to in-memory state when an external database is offline. Connecting a live MongoDB Atlas URI in `.env` activates persistent multi-document transactions.
-- **Next Phase**: **Phase 3 — Seller Onboarding, Storefront Customization & Catalog Management (Weeks 5–7)**:
-  - Seller KYC verification submission wizard.
-  - Storefront branding, logo/banner uploads, and warehouse dispatch address configuration.
-  - Hierarchical category taxonomy and dynamic attribute templates.
-  - Multi-dimensional variant matrix generator (Size $\times$ Color $\times$ Material).
-  - Admin product moderation queue (`PENDING_REVIEW` $\rightarrow$ `APPROVED`).
+### 2.4 Next Phase
+Proceed to **Phase 4: Customer Storefront, Shopping Cart & Multi-Vendor Split Checkout (Weeks 8–10)**:
+- Full faceted search and dynamic category filter binding on storefront.
+- Persistent multi-vendor shopping cart with vendor grouping and independent sub-totals.
+- Atomic stock reservation engine (`availableStock` $\rightarrow$ `reservedStock`) within ACID transactions.
+- 15-minute BullMQ reservation expiration queue.
+- Parent Order and Sub-Order creation with frozen price snapshots and commission rates.

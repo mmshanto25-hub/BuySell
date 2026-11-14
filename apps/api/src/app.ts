@@ -7,6 +7,8 @@ import { errorHandler } from './common/middleware/errorHandler';
 import { healthRouter } from './modules/health/health.routes';
 import { authRouter } from './modules/auth/auth.routes';
 import { userRouter } from './modules/users/user.routes';
+import { sellerRouter } from './modules/sellers/seller.routes';
+import { productRouter } from './modules/catalog/product.routes';
 import { catalogRouter } from './modules/catalog/catalog.routes';
 import { ordersRouter } from './modules/orders/orders.routes';
 import { financeRouter } from './modules/finance/finance.routes';
@@ -38,6 +40,8 @@ app.get('/', (req, res) => {
 app.use('/health', healthRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1', userRouter);
+app.use('/api/v1', sellerRouter);
+app.use('/api/v1', productRouter);
 app.use('/api/v1', catalogRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/finance', financeRouter);

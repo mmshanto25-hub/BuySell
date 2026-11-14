@@ -165,7 +165,7 @@ export class AuthService {
         tokens,
       };
     } else {
-      // Fallback: check in-memory or built-in test admin
+      // Fallback: check in-memory or built-in test accounts
       let user = inMemoryUsers.get(email);
       if (!user && email === 'admin@marketplace.com') {
         user = {
@@ -174,6 +174,15 @@ export class AuthService {
           lastName: 'Admin',
           email,
           role: 'SUPER_ADMIN',
+          status: 'ACTIVE',
+        };
+      } else if (!user && email === 'merchant@apexfootwear.com') {
+        user = {
+          id: 'usr_seller',
+          firstName: 'Apex',
+          lastName: 'Merchant',
+          email,
+          role: 'SELLER',
           status: 'ACTIVE',
         };
       }
