@@ -167,6 +167,72 @@ export const placeOrderSchema = z.object({
 });
 
 // ==========================================
+// 5. PAYMENTS & LOGISTICS SCHEMAS
+// ==========================================
+
+export const initiatePaymentSchema = z.object({
+  orderNumber: z.string().min(1, 'Order number is required'),
+  gateway: z.enum(['BKASH', 'NAGAD', 'SSLCOMMERZ', 'STRIPE', 'COD']),
+});
+
+export const createConsignmentSchema = z.object({
+  subOrderNumber: z.string().min(1, 'Sub-order number is required'),
+  carrier: z.enum(['PATHAO', 'STEADFAST', 'REDX', 'INTERNAL']).default('PATHAO'),
+  recipientName: z.string().optional(),
+  recipientPhone: z.string().optional(),
+  deliveryAddress: z.string().optional(),
+  weightInGrams: z.number().int().positive().default(500),
+  specialNotes: z.string().optional(),
+});
+
+export const carrierWebhookSchema = z.object({
+  consignmentId: z.string().min(1),
+  trackingCode: z.string().min(1),
+  status: z.enum([
+    'MANIFEST_CREATED',
+    'PICKED_UP',
+    'IN_TRANSIT',
+    'OUT_FOR_DELIVERY',
+    'DELIVERED',
+    'FAILED',
+    'RETURNED_TO_SELLER',
+  ]),
+  message: z.string().optional(),
+  location: z.string().optional(),
+  timestamp: z.string().optional(),
+});
+
+// ==========================================
+// 6. RETURNS & DISPUTE SCHEMAS
+// ==========================================
+
+export const createReturnSchema = z.object({
+  subOrderNumber: z.string().min(1, 'Sub-order number is required'),
+  items: z
+    .array(
+      z.object({
+        orderItemId: z.string().min(1, 'Order item ID is required'),
+        quantity: z.number().int().positive('Quantity must be at least 1'),
+        reason: z.enum(['DAMAGED', 'DEFECTIVE', 'WRONG_ITEM', 'NOT_AS_DESCRIBED', 'SIZE_FIT']),
+        details: z.string().min(5, 'Detailed description is required'),
+        images: z.array(z.string().url()).default([]),
+      })
+    )
+    .min(1, 'At least 1 item must be selected for return'),
+});
+
+export const sellerRespondReturnSchema = z.object({
+  action: z.enum(['ACCEPT', 'CONTEST']),
+  contestReason: z.string().optional(),
+});
+
+export const arbitrateDisputeSchema = z.object({
+  resolution: z.enum(['REFUND_BUYER', 'REJECT_CLAIM', 'PARTIAL_REFUND']),
+  refundAmount: z.number().min(0).optional(),
+  adminNotes: z.string().min(10, 'Arbitration notes required for audit compliance'),
+});
+
+// ==========================================
 // 5. FINANCE & SETTLEMENT SCHEMAS
 // ==========================================
 

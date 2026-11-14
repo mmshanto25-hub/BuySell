@@ -12,6 +12,9 @@ import { productRouter } from './modules/catalog/product.routes';
 import { catalogRouter } from './modules/catalog/catalog.routes';
 import { cartRouter } from './modules/cart/cart.routes';
 import { ordersRouter } from './modules/orders/orders.routes';
+import { paymentRouter, webhookRouter } from './modules/payments/payment.routes';
+import { logisticsRouter, courierWebhookRouter } from './modules/logistics/logistics.routes';
+import { returnRouter, disputeRouter } from './modules/returns/return.routes';
 import { financeRouter } from './modules/finance/finance.routes';
 
 export const app = express();
@@ -47,6 +50,12 @@ app.use('/api/v1', catalogRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/checkout', ordersRouter);
 app.use('/api/v1/orders', ordersRouter);
+app.use('/api/v1/payments', paymentRouter);
+app.use('/api/v1/webhooks/logistics', courierWebhookRouter);
+app.use('/api/v1/webhooks', webhookRouter);
+app.use('/api/v1/logistics', logisticsRouter);
+app.use('/api/v1/returns', returnRouter);
+app.use('/api/v1/disputes', disputeRouter);
 app.use('/api/v1/finance', financeRouter);
 
 // Centralized Global Error Handler
