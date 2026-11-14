@@ -185,6 +185,15 @@ export class AuthService {
           role: 'SELLER',
           status: 'ACTIVE',
         };
+      } else if (!user && email === 'customer@example.com') {
+        user = {
+          id: 'usr_customer_01',
+          firstName: 'Tariqul',
+          lastName: 'Islam',
+          email,
+          role: 'CUSTOMER',
+          status: 'ACTIVE',
+        };
       }
 
       if (!user) {

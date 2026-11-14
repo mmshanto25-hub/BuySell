@@ -124,6 +124,40 @@ export const updateCartItemSchema = z.object({
   quantity: z.number().int().min(0, 'Quantity cannot be negative').max(50),
 });
 
+export const applyCouponSchema = z.object({
+  couponCode: z.string().min(1, 'Coupon code is required').trim().toUpperCase(),
+});
+
+export const updateSubOrderStatusSchema = z.object({
+  status: z.enum([
+    'PENDING',
+    'CONFIRMED',
+    'PACKED',
+    'SHIPPED',
+    'OUT_FOR_DELIVERY',
+    'DELIVERED',
+    'COMPLETED',
+    'CANCELLED',
+    'RETURNED',
+  ]),
+  carrier: z.string().optional(),
+  trackingCode: z.string().optional(),
+  consignmentId: z.string().optional(),
+});
+
+export const preValidateCheckoutSchema = z.object({
+  shippingAddressId: z.string().optional(),
+  couponCode: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        variantId: z.string().min(1),
+        quantity: z.number().int().positive(),
+      })
+    )
+    .optional(),
+});
+
 export const placeOrderSchema = z.object({
   shippingAddressId: z.string().min(1, 'Shipping address is required'),
   billingAddressId: z.string().optional(),

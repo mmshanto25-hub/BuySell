@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ProductCard } from '@marketplace/ui';
 import { Filter, SlidersHorizontal } from 'lucide-react';
 
@@ -142,7 +143,9 @@ export default function ShopPage() {
         <div className="lg:col-span-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {SHOP_PRODUCTS.map((prod) => (
-              <ProductCard key={prod.id} {...prod} />
+              <Link key={prod.id} href={`/product/${prod.slug}`} className="block h-full">
+                <ProductCard {...prod} />
+              </Link>
             ))}
           </div>
         </div>

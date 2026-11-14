@@ -10,6 +10,7 @@ import { userRouter } from './modules/users/user.routes';
 import { sellerRouter } from './modules/sellers/seller.routes';
 import { productRouter } from './modules/catalog/product.routes';
 import { catalogRouter } from './modules/catalog/catalog.routes';
+import { cartRouter } from './modules/cart/cart.routes';
 import { ordersRouter } from './modules/orders/orders.routes';
 import { financeRouter } from './modules/finance/finance.routes';
 
@@ -43,6 +44,8 @@ app.use('/api/v1', userRouter);
 app.use('/api/v1', sellerRouter);
 app.use('/api/v1', productRouter);
 app.use('/api/v1', catalogRouter);
+app.use('/api/v1/cart', cartRouter);
+app.use('/api/v1/checkout', ordersRouter);
 app.use('/api/v1/orders', ordersRouter);
 app.use('/api/v1/finance', financeRouter);
 
