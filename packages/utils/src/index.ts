@@ -119,3 +119,89 @@ export function isWithinReturnWindow(deliveredAt: Date, returnWindowDays = 7): b
   const expiry = calculateEscrowReleaseDate(deliveredAt, returnWindowDays);
   return now.getTime() <= expiry.getTime();
 }
+
+// ==========================================
+// 4. SEO & STRUCTURED DATA HELPERS
+// ==========================================
+
+export interface ProductJsonLdParams {
+  name: string;
+  description: string;
+  image: string;
+  sku: string;
+  brand: string;
+  price: number;
+  currency?: string;
+  ratingValue?: number;
+  reviewCount?: number;
+  inStock?: boolean;
+  sellerName?: string;
+}
+
+/**
+ * Generates Google-compliant Schema.org JSON-LD for rich product snippets
+ */
+export function generateProductJsonLd(params: ProductJsonLdParams): Record<string, any> {
+  const jsonLd: Record<string, any> = {
+    '@context': 'https://schema.org/',
+    '@type': 'Product',
+    name: params.name,
+    image: [params.image],
+    description: params.description,
+    sku: params.sku,
+    brand: {
+      '@type': 'Brand',
+      name: params.brand || 'Generic',
+    },
+    offers: {
+      '@type': 'Offer',
+      url: `https://marketplace.com/product/${params.sku.toLowerCase()}`,
+      priceCurrency: params.currency || 'BDT',
+      price: params.price,
+      availability: params.inStock !== false ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      itemCondition: 'https://schema.org/NewCondition',
+      seller: {
+        '@type': 'Organization',
+        name: params.sellerName || 'Marketplace Merchant',
+      },
+    },
+  };
+
+  if (params.ratingValue && params.reviewCount && params.reviewCount > 0) {
+    jsonLd.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: params.ratingValue.toFixed(1),
+      reviewCount: params.reviewCount,
+      bestRating: '5',
+      worstRating: '1',
+    };
+  }
+
+  return jsonLd;
+}
+
+export interface SitemapUrlEntry {
+  loc: string;
+  lastmod?: string | Date;
+  changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+  priority?: number;
+}
+
+/**
+ * Builds standard XML sitemap string indexing catalog URLs
+ */
+export function generateSitemapXml(urls: SitemapUrlEntry[]): string {
+  const itemsXml = urls
+    .map((item) => {
+      const lastmodStr = item.lastmod
+        ? `<lastmod>${new Date(item.lastmod).toISOString().split('T')[0]}</lastmod>`
+        : '';
+      const freqStr = item.changefreq ? `<changefreq>${item.changefreq}</changefreq>` : '';
+      const priorityStr = item.priority !== undefined ? `<priority>${item.priority.toFixed(1)}</priority>` : '';
+      return `  <url>\n    <loc>${item.loc}</loc>\n    ${lastmodStr}\n    ${freqStr}\n    ${priorityStr}\n  </url>`;
+    })
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${itemsXml}\n</urlset>`;
+}
+

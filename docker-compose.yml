@@ -1,0 +1,184 @@
+version: '3.9'
+
+services:
+  # ─── MongoDB Replica Set ────────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: marketplace-mongodb
+    restart: unless-stopped
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: marketplace
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "rs.status().ok || rs.initiate({_id:'rs0',members:[{_id:0,host:'mongodb:27017'}]}).ok"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # ─── Redis Cache & Sessions ─────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: marketplace-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory', '256mb', '--maxmemory-policy', 'allkeys-lru']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ─── API Server ────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: marketplace-api
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: mongodb://mongodb:27017/marketplace?replicaSet=rs0
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-in-production-access-64chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production-refresh-64chars}
+      COOKIE_SECRET: ${COOKIE_SECRET:-change-me-in-production-cookie}
+      STOREFRONT_URL: http://storefront:3000
+      SELLER_DASHBOARD_URL: http://seller-dashboard:3001
+      ADMIN_DASHBOARD_URL: http://admin-dashboard:3002
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5000/health/liveness']
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - frontend
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+  # ─── Storefront (Next.js) ─────────────────────
+  storefront:
+    build:
+      context: .
+      dockerfile: docker/storefront.Dockerfile
+    container_name: marketplace-storefront
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:5000
+      NODE_ENV: production
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/']
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ─── Seller Dashboard (Next.js) ────────────────
+  seller-dashboard:
+    build:
+      context: .
+      dockerfile: docker/storefront.Dockerfile
+      args:
+        APP_DIR: apps/seller-dashboard
+    container_name: marketplace-seller-dashboard
+    restart: unless-stopped
+    ports:
+      - '3001:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:5000
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  # ─── Admin Dashboard (Next.js) ─────────────────
+  admin-dashboard:
+    build:
+      context: .
+      dockerfile: docker/storefront.Dockerfile
+      args:
+        APP_DIR: apps/admin-dashboard
+    container_name: marketplace-admin-dashboard
+    restart: unless-stopped
+    ports:
+      - '3002:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:5000
+      NODE_ENV: production
+      PORT: 3000
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - frontend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

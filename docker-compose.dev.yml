@@ -1,0 +1,49 @@
+version: '3.9'
+
+# Development overrides — use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+      target: builder
+    command: npx tsx watch apps/api/src/server.ts
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages:/app/packages
+    environment:
+      NODE_ENV: development
+    ports:
+      - '5000:5000'
+      - '9229:9229'  # Node.js debugger
+    deploy:
+      resources: {}
+
+  storefront:
+    build:
+      context: .
+      dockerfile: docker/storefront.Dockerfile
+      target: builder
+    command: npx next dev --port 3000
+    volumes:
+      - ./apps/storefront/src:/app/apps/storefront/src
+      - ./packages:/app/packages
+    environment:
+      NODE_ENV: development
+    ports:
+      - '3000:3000'
+    deploy:
+      resources: {}
+
+  mongodb:
+    ports:
+      - '27017:27017'
+    deploy:
+      resources: {}
+
+  redis:
+    ports:
+      - '6379:6379'
+    deploy:
+      resources: {}

@@ -8,6 +8,7 @@ import { InventoryMovement } from '../inventory/movement.model';
 import { AppError } from '../../common/errors/AppError';
 import { isDatabaseConnected } from '../../common/database/connection';
 import { ENV } from '../../common/config/env';
+import { FinanceService } from '../finance/finance.service';
 
 // In-Memory Fallback Payment Storage
 const inMemoryPayments: Map<string, any> = new Map();
@@ -208,6 +209,28 @@ export class PaymentService {
         }
       }
 
+      // 6. Record Double-Entry Journal Entries in GAAP Financial Ledger
+      try {
+        await FinanceService.recordOrderPayment(
+          { id: order._id.toString(), orderNumber: order.orderNumber, grandTotal: order.grandTotal },
+          subOrders.map((so) => ({
+            id: so._id.toString(),
+            subOrderNumber: so.subOrderNumber,
+            sellerId: so.sellerId.toString(),
+            storeId: so.storeId.toString(),
+            subtotal: so.subtotal,
+            shippingFee: so.shippingFee,
+            commissionAmount: so.commissionAmount,
+            sellerNetEarning: so.sellerNetEarning,
+          })),
+          gateway,
+          trxId
+        );
+      } catch (finErr) {
+        // Log ledger error without breaking webhook 200 response
+        console.error('Ledger entry error:', finErr);
+      }
+
       return {
         idempotent: false,
         message: 'Payment verified and order confirmed successfully',
@@ -238,6 +261,37 @@ export class PaymentService {
       verifiedAt: new Date(),
     };
     inMemoryPayments.set(orderNumber, updated);
+
+    // Record in-memory double-entry financial ledger
+    try {
+      await FinanceService.recordOrderPayment(
+        { id: 'ord_' + Date.now(), orderNumber, grandTotal: 10290 },
+        [
+          {
+            id: 'so_1',
+            subOrderNumber: `${orderNumber}-S1`,
+            sellerId: 'seller_apex',
+            storeId: 'store_apex',
+            subtotal: 5000,
+            shippingFee: 80,
+            commissionAmount: 600,
+            sellerNetEarning: 4480,
+          },
+          {
+            id: 'so_2',
+            subOrderNumber: `${orderNumber}-S2`,
+            sellerId: 'seller_aarong',
+            storeId: 'store_aarong',
+            subtotal: 4500,
+            shippingFee: 110,
+            commissionAmount: 540,
+            sellerNetEarning: 4070,
+          },
+        ],
+        gateway,
+        trxId
+      );
+    } catch (_) {}
 
     return {
       idempotent: false,

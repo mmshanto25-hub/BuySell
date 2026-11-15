@@ -32,4 +32,8 @@ export class AppError extends Error {
   static conflict(message: string) {
     return new AppError(message, 409, 'CONFLICT');
   }
+
+  static internal(message: string, details?: any) {
+    return new AppError(message, 500, 'INTERNAL_ERROR', details);
+  }
 }

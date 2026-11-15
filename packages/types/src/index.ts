@@ -439,3 +439,99 @@ export interface ApiResponse<T = any> {
   };
   timestamp?: string;
 }
+
+// ==========================================
+// 9. REVIEWS, RATINGS & SENTIMENT TYPES
+// ==========================================
+
+export type ReviewModerationStatus = 'APPROVED' | 'FLAGGED' | 'REJECTED';
+
+export interface IReview {
+  id: string;
+  productId: string;
+  variantId?: string;
+  storeId: string;
+  customerId: string;
+  customerName: string;
+  subOrderId: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  images: string[];
+  isVerifiedPurchase: boolean;
+  sentimentScore?: number;
+  moderationStatus: ReviewModerationStatus;
+  sellerReply?: {
+    comment: string;
+    repliedAt: Date;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ==========================================
+// 10. COUPONS & MARKETING TYPES
+// ==========================================
+
+export type CouponScope = 'PLATFORM' | 'STORE';
+export type CouponDiscountType = 'PERCENTAGE' | 'FIXED';
+
+export interface ICoupon {
+  id: string;
+  code: string;
+  description?: string;
+  scope: CouponScope;
+  storeId?: string | null;
+  discountType: CouponDiscountType;
+  discountValue: number;
+  maxDiscountAmount?: number | null;
+  minOrderSubtotal: number;
+  totalUsageLimit: number;
+  perUserUsageLimit: number;
+  usedCount: number;
+  startsAt: Date;
+  expiresAt: Date;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ==========================================
+// 11. AI VECTOR & SEO TYPES
+// ==========================================
+
+export interface IProductEmbedding {
+  productId: string;
+  vector: number[];
+  embeddedText: string;
+  model: string;
+  updatedAt: Date;
+}
+
+export interface IAIShoppingMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface ISeoMetadata {
+  title: string;
+  description: string;
+  canonicalUrl: string;
+  keywords?: string[];
+  openGraph: {
+    title: string;
+    description: string;
+    images: string[];
+    url: string;
+    type: string;
+    siteName: string;
+  };
+  twitter: {
+    card: string;
+    title: string;
+    description: string;
+    images: string[];
+  };
+  jsonLd: Record<string, any>;
+}
+

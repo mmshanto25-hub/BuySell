@@ -240,3 +240,86 @@ export const requestSettlementSchema = z.object({
   amount: z.number().min(1000, 'Minimum settlement payout is ৳1,000'),
   payoutMethod: z.enum(['BANK_TRANSFER', 'BKASH', 'NAGAD']),
 });
+
+// ==========================================
+// 7. CUSTOMER REVIEWS & RATINGS SCHEMAS
+// ==========================================
+
+export const createReviewSchema = z.object({
+  productId: z.string().min(1, 'Product ID is required'),
+  subOrderId: z.string().min(1, 'Verified purchase sub-order number is required'),
+  variantId: z.string().optional(),
+  rating: z.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating cannot exceed 5'),
+  title: z.string().max(100).optional(),
+  comment: z.string().min(5, 'Review comment must be at least 5 characters').max(1000),
+  images: z.array(z.string().url()).default([]),
+});
+
+export const sellerReplyReviewSchema = z.object({
+  comment: z.string().min(3, 'Reply comment must be at least 3 characters').max(1000),
+});
+
+export const moderateReviewSchema = z.object({
+  moderationStatus: z.enum(['APPROVED', 'FLAGGED', 'REJECTED']),
+  reason: z.string().optional(),
+});
+
+// ==========================================
+// 8. MARKETING & COUPON SCHEMAS
+// ==========================================
+
+export const createCouponSchema = z.object({
+  code: z
+    .string()
+    .min(3, 'Coupon code must be at least 3 characters')
+    .max(20)
+    .regex(/^[A-Z0-9_-]+$/, 'Coupon code must be uppercase alphanumeric'),
+  description: z.string().optional(),
+  scope: z.enum(['PLATFORM', 'STORE']).default('STORE'),
+  storeId: z.string().optional(),
+  discountType: z.enum(['PERCENTAGE', 'FIXED']),
+  discountValue: z.number().positive('Discount value must be greater than 0'),
+  maxDiscountAmount: z.number().positive().optional(),
+  minOrderSubtotal: z.number().min(0).default(0),
+  totalUsageLimit: z.number().int().positive().default(1000),
+  perUserUsageLimit: z.number().int().positive().default(1),
+  expiresAt: z.string().or(z.date()),
+});
+
+export const validateCouponSchema = z.object({
+  code: z.string().min(1, 'Coupon code is required'),
+  cartSubtotal: z.number().positive('Cart subtotal must be greater than 0'),
+  storeId: z.string().optional(),
+});
+
+// ==========================================
+// 9. AI CATALOG, SEARCH & RAG CHATBOT SCHEMAS
+// ==========================================
+
+export const aiCatalogAssistantSchema = z.object({
+  productTitle: z.string().min(2, 'Product title is required'),
+  categoryName: z.string().optional(),
+  features: z.array(z.string()).default([]),
+  targetAudience: z.string().optional(),
+});
+
+export const aiShoppingAssistantSchema = z.object({
+  query: z.string().min(2, 'Query must be at least 2 characters'),
+  budgetLimit: z.number().positive().optional(),
+  preferredCategory: z.string().optional(),
+  conversationHistory: z
+    .array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+      })
+    )
+    .default([]),
+});
+
+export const semanticSearchSchema = z.object({
+  query: z.string().min(1, 'Search query is required'),
+  limit: z.number().int().min(1).max(50).default(10),
+  minScore: z.number().min(0).max(1).default(0.3),
+});
+
